@@ -1,0 +1,153 @@
+import Phaser from 'phaser'
+import { SCENE_07 } from '../data/scene07'
+import { SCENE_KEYS } from '../data/scene01'
+import {
+  SUDE_COLOR,
+  preloadSudeVariant,
+  applySudeNearestFilter,
+} from '../data/sudeSprites'
+import { LetterBoard } from '../ui/LetterBoard'
+import { FadeTransition } from '../systems/FadeTransition'
+import {
+  VIEWPORT_WIDTH,
+  VIEWPORT_HEIGHT,
+} from '../systems/GameViewport'
+import { loadGameImage } from '../systems/assetUrl'
+
+/**
+ * Scene 7 — reunion cafe: Sude + family + Soobin + Yeonjun, then chest → letters.
+ */
+export class ReunionScene extends Phaser.Scene {
+  constructor() {
+    super(SCENE_KEYS.SCENE_7)
+    this.chestClose = null
+    this.chestOpen = null
+    this.letterBoard = null
+    this.chestOpened = false
+  }
+
+  preload() {
+    loadGameImage(this, SCENE_07.textureKey, SCENE_07.texturePath)
+    loadGameImage(this, SCENE_07.chest.closeKey, SCENE_07.chest.closePath)
+    loadGameImage(this, SCENE_07.chest.openKey, SCENE_07.chest.openPath)
+    preloadSudeVariant(this, SUDE_COLOR)
+    for (const ch of SCENE_07.lineup) {
+      loadGameImage(this, ch.textureKey, ch.texturePath)
+    }
+    this.load.on('loaderror', (file) => {
+      console.error('[ReunionScene] Asset load failed:', file?.key, file?.url)
+    })
+  }
+
+  create() {
+    this.chestOpened = false
+    this.letterBoard = null
+
+    const bg = this.add.image(0, 0, SCENE_07.textureKey)
+    bg.setOrigin(0, 0)
+    bg.setDepth(0)
+
+    this.setupCamera()
+    this.placeSude()
+    this.placeLineup()
+    this.placeChest()
+
+    const fade = new FadeTransition(this)
+    void fade.fadeIn(650)
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdownScene, this)
+    this.events.once(Phaser.Scenes.Events.DESTROY, this.shutdownScene, this)
+  }
+
+  setupCamera() {
+    const cam = this.cameras.main
+    cam.setBackgroundColor('#000000')
+    const zoom = Math.min(
+      VIEWPORT_WIDTH / SCENE_07.width,
+      VIEWPORT_HEIGHT / SCENE_07.height,
+    )
+    cam.setZoom(zoom)
+    const viewW = VIEWPORT_WIDTH / zoom
+    const viewH = VIEWPORT_HEIGHT / zoom
+    const padX = Math.max(0, (viewW - SCENE_07.width) / 2)
+    const padY = Math.max(0, (viewH - SCENE_07.height) / 2)
+    cam.setBounds(
+      -padX,
+      -padY,
+      SCENE_07.width + padX * 2,
+      SCENE_07.height + padY * 2,
+    )
+    cam.centerOn(SCENE_07.width / 2, SCENE_07.height / 2)
+  }
+
+  placeSude() {
+    const s = SCENE_07.sude
+    applySudeNearestFilter(this, SUDE_COLOR)
+    const spr = this.add.image(s.x, s.y, s.textureKey)
+    spr.setOrigin(0.5, s.originY)
+    spr.setScale(s.scale)
+    spr.setDepth(20 + s.y)
+  }
+
+  placeLineup() {
+    const { lineup } = SCENE_07
+    lineup.forEach((ch, i) => {
+      if (this.textures.exists(ch.textureKey)) {
+        this.textures.get(ch.textureKey).setFilter(Phaser.Textures.FilterMode.NEAREST)
+      }
+      const spr = this.add.image(ch.x, ch.y, ch.textureKey)
+      spr.setOrigin(0.5, ch.originY)
+      spr.setScale(ch.scale)
+      spr.setDepth(20 + ch.y + i * 0.01)
+    })
+  }
+
+  placeChest() {
+    const c = SCENE_07.chest
+    for (const key of [c.closeKey, c.openKey]) {
+      if (this.textures.exists(key)) {
+        this.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST)
+      }
+    }
+
+    this.chestClose = this.add.image(c.x, c.y, c.closeKey)
+    this.chestClose.setOrigin(0.5, c.originY)
+    this.chestClose.setScale(c.closeScale)
+    this.chestClose.setDepth(40 + c.y)
+    this.chestClose.setInteractive({ useHandCursor: true })
+    this.chestClose.on('pointerdown', () => this.openChest())
+
+    this.chestOpen = this.add.image(c.x, c.y, c.openKey)
+    this.chestOpen.setOrigin(0.5, c.originY)
+    this.chestOpen.setScale(c.openScale)
+    this.chestOpen.setDepth(40 + c.y)
+    this.chestOpen.setVisible(false)
+    this.chestOpen.on('pointerdown', () => this.showLetters())
+  }
+
+  openChest() {
+    if (this.chestOpened) return
+    this.chestOpened = true
+    this.chestClose.disableInteractive()
+    this.chestClose.setVisible(false)
+    this.chestOpen.setVisible(true)
+    this.chestOpen.setInteractive({ useHandCursor: true })
+    this.showLetters()
+  }
+
+  showLetters() {
+    if (this.letterBoard) return
+    this.letterBoard = new LetterBoard(this, {
+      onClose: () => {
+        this.letterBoard = null
+      },
+    })
+  }
+
+  shutdownScene() {
+    this.letterBoard?.destroy()
+    this.letterBoard = null
+    this.chestClose = null
+    this.chestOpen = null
+  }
+}

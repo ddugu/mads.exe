@@ -9,11 +9,12 @@ import {
 import { Sude } from '../entities/Sude'
 import { InputManager } from '../input/InputManager'
 import { createTouchDPad } from '../input/TouchDPad'
-import { FadeTransition } from '../systems/FadeTransition'
+import { FadeTransition, fadeToScene } from '../systems/FadeTransition'
 import {
   VIEWPORT_HEIGHT,
   applySharedViewportCamera,
 } from '../systems/GameViewport'
+import { loadGameImage } from '../systems/assetUrl'
 
 /**
  * Scene 4 — autumn cafe exit → grayscale pit.
@@ -37,7 +38,7 @@ export class AutumnScene extends Phaser.Scene {
 
   preload() {
     for (const seg of SCENE_04.segments) {
-      this.load.image(seg.key, seg.path)
+      loadGameImage(this, seg.key, seg.path)
     }
     preloadSudeVariant(this, SUDE_COLOR)
     preloadSudeVariant(this, SUDE_BW)
@@ -284,10 +285,9 @@ export class AutumnScene extends Phaser.Scene {
       })
     })
 
-    // 3) Fade only after she has disappeared
-    const fade = new FadeTransition(this)
-    await fade.fadeOut(fadeDurationMs)
+    // 3) Fade to black after she has disappeared, then Scene 5.
     this.flowState = 'BLACK'
+    await fadeToScene(this, SCENE_KEYS.SCENE_5, {}, fadeDurationMs)
   }
 
   /**

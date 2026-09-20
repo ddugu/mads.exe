@@ -13,6 +13,7 @@ import {
   applySoobinNearestFilter,
 } from '../data/soobinSprites'
 import { SoobinNpc } from '../entities/SoobinNpc'
+import { loadGameImage } from '../systems/assetUrl'
 import { SpeechDots } from '../ui/SpeechDots'
 import { StoryBox } from '../ui/StoryBox'
 import { GrowingHeart } from '../ui/GrowingHeart'
@@ -44,11 +45,11 @@ export class CafeScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image(SCENE_03.textureKey, SCENE_03.texturePath)
-    this.load.image(SCENE_03.hug.textureKey, SCENE_03.hug.texturePath)
-    this.load.image(SCENE_03.yeonjun.textureKey, SCENE_03.yeonjun.texturePath)
-    this.load.image(SCENE_03.emotion.sadKey, SCENE_03.emotion.sadPath)
-    this.load.image(SCENE_03.emotion.cryKey, SCENE_03.emotion.cryPath)
+    loadGameImage(this, SCENE_03.textureKey, SCENE_03.texturePath)
+    loadGameImage(this, SCENE_03.hug.textureKey, SCENE_03.hug.texturePath)
+    loadGameImage(this, SCENE_03.yeonjun.textureKey, SCENE_03.yeonjun.texturePath)
+    loadGameImage(this, SCENE_03.emotion.sadKey, SCENE_03.emotion.sadPath)
+    loadGameImage(this, SCENE_03.emotion.cryKey, SCENE_03.emotion.cryPath)
     preloadSudeVariant(this, SUDE_COLOR)
     preloadSoobinVariant(this, SOOBIN_HOLDING)
     preloadSoobinVariant(this, SOOBIN_NORMAL)
@@ -401,18 +402,13 @@ export class CafeScene extends Phaser.Scene {
 
     try {
       this.heartFx = new GrowingHeart(this, hx, hy, {
-        durationMs: hh.durationMs ?? 1800,
-        startScale: hh.startScale ?? 0.55,
-        endScale: hh.endScale ?? 0.85,
+        growMs: hh.growMs,
+        fillMs: hh.fillMs,
+        startScale: hh.startScale,
+        endScale: hh.endScale,
+        fillWhileGrow: hh.fillWhileGrow,
       })
-      const above = (this.hugSprite?.depth ?? 500) + 2000
-      this.heartFx.setDepth(above)
-      console.log('[HEART] heart visible:', {
-        depth: above,
-        pos: { x: hx, y: hy },
-        hugDepth: this.hugSprite?.depth,
-      })
-
+      console.log('[HEART] heart visible:', { pos: { x: hx, y: hy } })
       await this.heartFx.play()
       await this.wait(hh.holdFullMs ?? 450)
     } catch (err) {

@@ -5,6 +5,9 @@ import { Scene1 } from './scenes/Scene1'
 import { CampusScene } from './scenes/CampusScene'
 import { CafeScene } from './scenes/CafeScene'
 import { AutumnScene } from './scenes/AutumnScene'
+import { GateScene } from './scenes/GateScene'
+import { DormScene } from './scenes/DormScene'
+import { ReunionScene } from './scenes/ReunionScene'
 
 /** Logical size matches Scene 1 background native pixels. */
 export const GAME_WIDTH = SCENE_01.width
@@ -41,7 +44,16 @@ export function createGameConfig(parent) {
       powerPreference: 'high-performance',
       transparent: false,
     },
-    scene: [BootScene, Scene1, CampusScene, CafeScene, AutumnScene],
+    scene: [
+      BootScene,
+      Scene1,
+      CampusScene,
+      CafeScene,
+      AutumnScene,
+      GateScene,
+      DormScene,
+      ReunionScene,
+    ],
     input: {
       keyboard: true,
       activePointers: 3,

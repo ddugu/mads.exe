@@ -9,14 +9,18 @@ export class HorizontalInteractionArrow {
    * @param {{
    *   x: number,
    *   y: number,
-   *   direction?: 'left' | 'right',
+   *   direction?: 'left' | 'right' | 'up',
    *   onActivate: () => void,
    * }} options
    */
   constructor(scene, options) {
     this.scene = scene
     this.onActivate = options.onActivate
-    this.direction = options.direction === 'left' ? 'left' : 'right'
+    this.direction = options.direction === 'left'
+      ? 'left'
+      : options.direction === 'up'
+        ? 'up'
+        : 'right'
     this.visible = false
     this.enabled = true
 
@@ -43,15 +47,22 @@ export class HorizontalInteractionArrow {
     this.baseX = options.x
     this.baseY = options.y
 
-    const bobDelta = this.direction === 'right' ? 8 : -8
-    this.bobTween = scene.tweens.add({
+    this.bobTween = this.startBob()
+  }
+
+  startBob() {
+    this.bobTween?.stop()
+    const axis = this.direction === 'up' ? 'y' : 'x'
+    const from = axis === 'y' ? this.baseY : this.baseX
+    const delta = this.direction === 'left' ? -8 : this.direction === 'up' ? -8 : 8
+    return this.scene.tweens.add({
       targets: this.container,
-      x: options.x + bobDelta,
+      [axis]: from + delta,
       duration: 520,
       yoyo: true,
       repeat: -1,
       ease: 'Sine.easeInOut',
-      paused: true,
+      paused: !this.visible,
     })
   }
 
@@ -63,27 +74,32 @@ export class HorizontalInteractionArrow {
     this.baseX = x
     this.baseY = y
     this.container.setPosition(x, y)
-    const bobDelta = this.direction === 'right' ? 8 : -8
-    this.bobTween.stop()
-    this.bobTween = this.scene.tweens.add({
-      targets: this.container,
-      x: x + bobDelta,
-      duration: 520,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
-      paused: !this.visible,
-    })
+    this.bobTween = this.startBob()
   }
 
   /**
    * @param {Phaser.GameObjects.Graphics} g
-   * @param {'left' | 'right'} direction
+   * @param {'left' | 'right' | 'up'} direction
    */
   drawArrow(g, direction) {
     g.clear()
     g.fillStyle(0xf2f2f2, 0.95)
     g.lineStyle(2, 0x222222, 0.85)
+
+    if (direction === 'up') {
+      g.beginPath()
+      g.moveTo(0, -16)
+      g.lineTo(14, 4)
+      g.lineTo(6, 4)
+      g.lineTo(6, 16)
+      g.lineTo(-6, 16)
+      g.lineTo(-6, 4)
+      g.lineTo(-14, 4)
+      g.closePath()
+      g.fillPath()
+      g.strokePath()
+      return
+    }
 
     const s = direction === 'right' ? 1 : -1
     g.beginPath()

@@ -17,6 +17,7 @@ import { DoorInteraction } from '../systems/DoorInteraction'
 import { FadeTransition, fadeToScene } from '../systems/FadeTransition'
 import { PixelPopup } from '../ui/PixelPopup'
 import { applyFullscreenViewportCamera } from '../systems/GameViewport'
+import { loadGameImage } from '../systems/assetUrl'
 
 /**
  * Scene 1 — grayscale road toward SUDE.EXE gate.
@@ -37,7 +38,7 @@ export class Scene1 extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image(SCENE_01.textureKey, SCENE_01.texturePath)
+    loadGameImage(this, SCENE_01.textureKey, SCENE_01.texturePath)
     preloadSudeTextures(this)
 
     this.load.on('loaderror', (file) => {

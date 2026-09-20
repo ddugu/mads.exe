@@ -11,6 +11,7 @@ import { createTouchDPad } from '../input/TouchDPad'
 import { HorizontalInteractionArrow } from '../systems/HorizontalInteractionArrow'
 import { FadeTransition, fadeToScene } from '../systems/FadeTransition'
 import { applySharedViewportCamera } from '../systems/GameViewport'
+import { loadGameImage } from '../systems/assetUrl'
 
 /**
  * Scene 2 — color campus path.
@@ -30,11 +31,19 @@ export class CampusScene extends Phaser.Scene {
     this.worldHeight = 0
     this.flowState = 'FREE'
     this.movementEnabled = false
+    this.enterScene7 = false
+  }
+
+  /**
+   * @param {{ fromDorm?: boolean }} [data]
+   */
+  init(data = {}) {
+    this.enterScene7 = data.fromDorm === true
   }
 
   preload() {
     for (const seg of SCENE_02.segments) {
-      this.load.image(seg.key, seg.path)
+      loadGameImage(this, seg.key, seg.path)
     }
     preloadSudeVariant(this, SUDE_COLOR)
 
@@ -190,7 +199,12 @@ export class CampusScene extends Phaser.Scene {
       direction: 'right',
       durationMs: enterDurationMs,
     })
-    await fadeToScene(this, SCENE_KEYS.SCENE_3, {}, 800)
+    await fadeToScene(
+      this,
+      this.enterScene7 ? SCENE_KEYS.SCENE_7 : SCENE_KEYS.SCENE_3,
+      {},
+      800,
+    )
   }
 
   /**

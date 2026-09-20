@@ -1,146 +1,257 @@
-import Phaser from 'phaser'
+/**
+ * Pixel heart overlay (DOM + CSS mask).
+ *
+ * Phaser Graphics/masks vanish under CafeScene camera zoom + pixelArt.
+ * Browser CSS mask fills bottom→top like liquid, matching the reference.
+ */
+
+const HEART_CSS_PX = 56
+
+/** Filled 12×10 pixel heart (1 = opaque). */
+const HEART_FILL_GRID = [
+  '001110011100',
+  '011111111110',
+  '111111111111',
+  '111111111111',
+  '111111111111',
+  '011111111110',
+  '001111111100',
+  '000111111000',
+  '000011110000',
+  '000001100000',
+]
+
+let cachedUrls = null
+
+function gridToDataUrl(grid, { outlineOnly, fillRgb, outlineRgb, scale = 4 }) {
+  const rows = grid.length
+  const cols = grid[0].length
+  const canvas = document.createElement('canvas')
+  canvas.width = cols * scale
+  canvas.height = rows * scale
+  const ctx = canvas.getContext('2d')
+  ctx.imageSmoothingEnabled = false
+
+  const isOn = (x, y) =>
+    y >= 0 && y < rows && x >= 0 && x < cols && grid[y][x] === '1'
+
+  for (let y = 0; y < rows; y += 1) {
+    for (let x = 0; x < cols; x += 1) {
+      if (grid[y][x] !== '1') continue
+      const edge =
+        !isOn(x - 1, y) ||
+        !isOn(x + 1, y) ||
+        !isOn(x, y - 1) ||
+        !isOn(x, y + 1)
+      if (outlineOnly && !edge) continue
+      const [r, g, b] = outlineOnly ? outlineRgb : fillRgb
+      ctx.fillStyle = `rgb(${r},${g},${b})`
+      ctx.fillRect(x * scale, y * scale, scale, scale)
+    }
+  }
+  return canvas.toDataURL('image/png')
+}
+
+function heartUrls() {
+  if (cachedUrls) return cachedUrls
+  cachedUrls = {
+    mask: gridToDataUrl(HEART_FILL_GRID, {
+      outlineOnly: false,
+      fillRgb: [255, 255, 255],
+    }),
+    outline: gridToDataUrl(HEART_FILL_GRID, {
+      outlineOnly: true,
+      outlineRgb: [255, 120, 150],
+    }),
+  }
+  return cachedUrls
+}
+
+function worldToCanvasCss(cam, canvasRect, parentRect, wx, wy) {
+  const vx = ((wx - cam.worldView.x) / cam.worldView.width) * cam.width
+  const vy = ((wy - cam.worldView.y) / cam.worldView.height) * cam.height
+  return {
+    x: canvasRect.left - parentRect.left + (vx / cam.width) * canvasRect.width,
+    y: canvasRect.top - parentRect.top + (vy / cam.height) * canvasRect.height,
+  }
+}
+
+function waitMs(scene, ms) {
+  return new Promise((resolve) => {
+    scene.time.delayedCall(ms, () => resolve())
+  })
+}
 
 /**
- * Heart above hug — circles + triangle Graphics only (no textures / masks / bezier).
- * Guaranteed visible under CafeScene zoom + pixelArt.
+ * @param {Phaser.Scene} scene
+ * @param {number} worldX
+ * @param {number} worldY
+ * @param {{
+ *   growMs?: number,
+ *   fillMs?: number,
+ *   startScale?: number,
+ *   endScale?: number,
+ *   fillWhileGrow?: number,
+ * }} [opts]
  */
 export class GrowingHeart {
-  /**
-   * @param {Phaser.Scene} scene
-   * @param {number} x
-   * @param {number} y
-   * @param {{
-   *   durationMs?: number,
-   *   startScale?: number,
-   *   endScale?: number,
-   * }} [opts]
-   */
-  constructor(scene, x, y, opts = {}) {
+  constructor(scene, worldX, worldY, opts = {}) {
     this.scene = scene
-    this.x = x
-    this.y = y
-    this.durationMs = opts.durationMs ?? 1800
-    this.startScale = opts.startScale ?? 0.55
-    this.endScale = opts.endScale ?? 0.85
+    this.worldX = worldX
+    this.worldY = worldY
+    this.growMs = opts.growMs ?? 1600
+    this.fillMs = opts.fillMs ?? 1400
+    this.startScale = opts.startScale ?? 0.32
+    this.endScale = opts.endScale ?? 1
+    this.fillWhileGrow = opts.fillWhileGrow ?? 0.28
     this.progress = 0
+    this.root = { depth: 100000 }
 
-    this.g = scene.add.graphics()
-    this.g.setPosition(x, y)
-    this.g.setDepth(100000)
-    this.g.setVisible(true)
-    this.g.setAlpha(1)
+    const canvas = scene.game?.canvas
+    const parent = canvas?.parentElement ?? document.getElementById('phaser-frame')
+    this.canvas = canvas
+    this.parent = parent
 
-    // Fallback text heart — if Graphics somehow blank, this still shows
-    this.fallback = scene.add
-      .text(x, y, '❤', {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '40px',
-        color: '#e01838',
-      })
-      .setOrigin(0.5)
-      .setDepth(100001)
-      .setVisible(true)
-      .setAlpha(1)
+    const urls = heartUrls()
+    const el = document.createElement('div')
+    el.className = 'sude-pixel-heart sude-pixel-heart--visible'
+    el.style.width = `${HEART_CSS_PX}px`
+    el.style.height = `${HEART_CSS_PX}px`
+    el.style.transform = `translate(-50%, -50%) scale(${this.startScale})`
+    el.style.setProperty('--heart-fill', '0%')
 
-    this.applyVisual(this.startScale, 0.2)
+    const outline = document.createElement('div')
+    outline.className = 'sude-pixel-heart__outline'
+    outline.style.backgroundImage = `url(${urls.outline})`
 
-    console.log('[HEART] heart created', {
-      x,
-      y,
-      gDepth: this.g.depth,
-      textDepth: this.fallback.depth,
-      gVisible: this.g.visible,
-      textVisible: this.fallback.visible,
-    })
+    const fillClip = document.createElement('div')
+    fillClip.className = 'sude-pixel-heart__fill-clip'
+    const fill = document.createElement('div')
+    fill.className = 'sude-pixel-heart__fill'
+    fill.style.height = `${HEART_CSS_PX}px`
+    fill.style.backgroundColor = '#ff4d6d'
+    fill.style.webkitMaskImage = `url(${urls.mask})`
+    fill.style.maskImage = `url(${urls.mask})`
+    fill.style.webkitMaskSize = 'contain'
+    fill.style.maskSize = 'contain'
+    fill.style.webkitMaskRepeat = 'no-repeat'
+    fill.style.maskRepeat = 'no-repeat'
+    fill.style.webkitMaskPosition = 'center bottom'
+    fill.style.maskPosition = 'center bottom'
+    fillClip.appendChild(fill)
+    el.append(outline, fillClip)
+    if (!parent) {
+      console.error('[HEART] no parent to mount overlay')
+      this.el = null
+      return
+    }
+    parent.appendChild(el)
+
+    this.el = el
+    this.fillEl = fill
+
+    this.sync = this.sync.bind(this)
+    window.addEventListener('resize', this.sync)
+    scene.scale?.on?.('resize', this.sync)
+    this.sync()
+    requestAnimationFrame(() => this.sync())
+
+    console.log('[HEART] heart created', { worldX, worldY })
   }
 
-  /** @param {number} depth */
-  setDepth(depth) {
-    this.g?.setDepth(depth)
-    this.fallback?.setDepth(depth + 1)
+  setDepth() {
+    // DOM overlay sits above the canvas; Phaser depth unused.
+  }
+
+  sync() {
+    const { canvas, parent, el, scene } = this
+    if (!el?.isConnected || !canvas?.isConnected) return
+    const parentRect = parent.getBoundingClientRect()
+    const canvasRect = canvas.getBoundingClientRect()
+    const p = worldToCanvasCss(
+      scene.cameras.main,
+      canvasRect,
+      parentRect,
+      this.worldX,
+      this.worldY,
+    )
+    el.style.left = `${p.x}px`
+    el.style.top = `${p.y}px`
   }
 
   /**
-   * Chunk heart: two circles + triangle (pixel-UI friendly, always fills).
    * @param {number} scale
    * @param {number} fill01
    */
   applyVisual(scale, fill01) {
-    const t = Phaser.Math.Clamp(fill01, 0, 1)
-    const s = scale
-    const g = this.g
-    g.clear()
-
-    const r = 11 * s
-    const pale = 0xffe0e8
-    const red = 0xe01838
-
-    // Pale shell
-    g.fillStyle(pale, 1)
-    g.fillCircle(-r * 0.85, -r * 0.35, r)
-    g.fillCircle(r * 0.85, -r * 0.35, r)
-    g.fillTriangle(-r * 1.7, -r * 0.15, r * 1.7, -r * 0.15, 0, r * 2.1)
-
-    // Red fill via alpha (visible growth of redness)
-    g.fillStyle(red, 0.12 + t * 0.88)
-    g.fillCircle(-r * 0.85, -r * 0.35, r)
-    g.fillCircle(r * 0.85, -r * 0.35, r)
-    g.fillTriangle(-r * 1.7, -r * 0.15, r * 1.7, -r * 0.15, 0, r * 2.1)
-
-    // Outline
-    g.lineStyle(Math.max(2, Math.round(2 * s)), 0x4a1828, 1)
-    g.strokeCircle(-r * 0.85, -r * 0.35, r)
-    g.strokeCircle(r * 0.85, -r * 0.35, r)
-    g.lineBetween(-r * 1.7, -r * 0.15, 0, r * 2.1)
-    g.lineBetween(r * 1.7, -r * 0.15, 0, r * 2.1)
-
-    g.setVisible(true)
-    g.setAlpha(1)
-
-    if (this.fallback) {
-      this.fallback.setScale(0.85 * s + 0.15)
-      this.fallback.setAlpha(0.45 + t * 0.55)
-      this.fallback.setColor(t > 0.55 ? '#e01838' : '#ff8aa8')
-      this.fallback.setVisible(true)
-    }
+    if (!this.el) return
+    this.el.style.transform = `translate(-50%, -50%) scale(${scale})`
+    this.el.style.setProperty('--heart-fill', `${Math.round(fill01 * 1000) / 10}%`)
+    this.el.classList.add('sude-pixel-heart--visible')
   }
 
   /**
+   * Grow to final size (slight fill), then liquid fill to 100%.
    * @returns {Promise<void>}
    */
-  play() {
+  async play() {
     console.log('[HEART] heart animation started')
-    this.applyVisual(this.startScale, 0.2)
+    this.applyVisual(this.startScale, 0)
+    await waitMs(this.scene, 80)
+
+    await this.tween(this.growMs, (t) => {
+      this.applyVisual(
+        lerp(this.startScale, this.endScale, easeOut(t)),
+        lerp(0, this.fillWhileGrow, t),
+      )
+    })
+
+    await this.tween(this.fillMs, (t) => {
+      this.applyVisual(this.endScale, lerp(this.fillWhileGrow, 1, easeInOut(t)))
+    })
+
+    this.applyVisual(this.endScale, 1)
+    console.log('[HEART] heart fill complete')
+  }
+
+  /**
+   * @param {number} duration
+   * @param {(t: number) => void} onTick
+   */
+  tween(duration, onTick) {
     return new Promise((resolve) => {
-      this.scene.time.delayedCall(400, () => {
-        const state = { t: 0 }
-        this.scene.tweens.add({
-          targets: state,
-          t: 1,
-          duration: this.durationMs,
-          ease: 'Sine.easeInOut',
-          onUpdate: () => {
-            this.progress = state.t
-            this.applyVisual(
-              Phaser.Math.Linear(this.startScale, this.endScale, state.t),
-              Phaser.Math.Linear(0.2, 1, state.t),
-            )
-          },
-          onComplete: () => {
-            this.progress = 1
-            this.applyVisual(this.endScale, 1)
-            console.log('[HEART] heart fill complete')
-            resolve()
-          },
-        })
+      const state = { t: 0 }
+      this.scene.tweens.add({
+        targets: state,
+        t: 1,
+        duration,
+        ease: 'Linear',
+        onUpdate: () => onTick(state.t),
+        onComplete: () => {
+          onTick(1)
+          resolve()
+        },
       })
     })
   }
 
   destroy() {
-    this.g?.destroy()
-    this.fallback?.destroy()
-    this.g = null
-    this.fallback = null
+    window.removeEventListener('resize', this.sync)
+    this.scene?.scale?.off?.('resize', this.sync)
+    this.el?.remove()
+    this.el = null
+    this.fillEl = null
   }
+}
+
+function lerp(a, b, t) {
+  return a + (b - a) * t
+}
+
+function easeOut(t) {
+  return 1 - (1 - t) * (1 - t)
+}
+
+function easeInOut(t) {
+  return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
 }

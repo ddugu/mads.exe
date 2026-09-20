@@ -29,14 +29,17 @@ export const SCENE_03 = {
 
   /** Small heart above hug heads (not screen-filling). */
   hugHeart: {
-    padAboveHeads: 40,
-    durationMs: 1800,
-    startScale: 0.55,
-    endScale: 0.85,
+    padAboveHeads: 28,
+    growMs: 1600,
+    fillMs: 1400,
+    startScale: 0.32,
+    endScale: 1,
+    fillWhileGrow: 0.28,
     holdFullMs: 450,
   },
 
-  firedText: 'OLAMAZ SOOBİN KAFEDEN KOVULDU',
+  firedText:
+    'OLAMAZ SOOBİN KAFEDEN KOVULDU\n\nonların hikayesine devam etmek istiyorsan oyuna devam et',
 
   /**
    * Sude enters through Welcome door onto the doormat center.

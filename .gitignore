@@ -1,7 +1,14 @@
 node_modules
 dist
 .DS_Store
+Thumbs.db
+Desktop.ini
 *.local
 .env
 .env.*
 !.env.example
+*.log
+.ssh
+.android
+NTUSER.DAT
+ntuser.dat*

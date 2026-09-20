@@ -21,8 +21,16 @@ export const VISIBLE_ALPHA_HEIGHT = {
   soobinHolding: 486,
   soobinNormal: 508,
   yeonjun: 731,
-  /** yeonbin-hug.png visible alpha height (do not crop PNG). */
   yeonbinHug: 1407,
+  familyDuygu: 1491,
+  familyYurin: 1449,
+  familyBurce: 1473,
+  familyDilara: 1444,
+  familyZera: 1275,
+  familySevde: 1270,
+  familyIrem: 1165,
+  chestClose: 557,
+  chestOpen: 740,
 }
 
 /**

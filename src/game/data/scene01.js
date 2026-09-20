@@ -144,8 +144,9 @@ export const SCENE_04 = {
   perspective: {
     yNear: 580,
     yFar: 470,
-    scaleNear: 0.3,
-    scaleFar: 0.18,
+    /** Same as Scene 2 Sude (campus path). */
+    scaleNear: SCENE_02.perspective.scaleNear,
+    scaleFar: SCENE_02.perspective.scaleFar,
   },
 
   /**
@@ -200,6 +201,107 @@ export const SCENE_KEYS = {
   SCENE_2: 'CampusScene',
   SCENE_3: 'CafeScene',
   SCENE_4: 'AutumnScene',
+  SCENE_5: 'GateScene',
+  SCENE_6: 'DormScene',
+  SCENE_7: 'ReunionScene',
+}
+
+/**
+ * Scene 5 — grayscale gate (no SUDE.EXE title). Native 1672×941.
+ * Continuation of Scene 1 road; uses unlabeled scene-05.png.
+ */
+export const SCENE_05 = {
+  key: 'GateScene',
+  textureKey: 'scene-05-bg',
+  texturePath: 'assets/backgrounds/scene-05/scene-05.png',
+  width: 1672,
+  height: 941,
+
+  spawn: {
+    x: 836,
+    y: 860,
+  },
+
+  path: {
+    centerX: 836,
+    yNear: 900,
+    halfWidthNear: 300,
+    yFar: 400,
+    halfWidthFar: 100,
+    yMin: 400,
+    yMax: 900,
+  },
+
+  perspective: {
+    yNear: 900,
+    yFar: 400,
+    scaleNear: SCENE_01.perspective.scaleNear,
+    scaleFar: SCENE_01.perspective.scaleFar,
+  },
+
+  doorInteraction: {
+    x: 836,
+    y: 430,
+    width: 160,
+    height: 90,
+    radius: 95,
+    arrowX: 836,
+    arrowY: 360,
+    enterStepY: -18,
+    enterDurationMs: 320,
+  },
+
+  movementSpeed: 120,
+}
+
+/**
+ * Scene 6 — color dorm. Chair is already gone in the PNG.
+ * Monitor shows KAFEYE GERİ GİT immediately; click → Scene 2.
+ */
+export const SCENE_06 = {
+  key: 'DormScene',
+  textureKey: 'scene-06-bg',
+  texturePath: 'assets/backgrounds/scene-06/scene-06.png',
+  width: 1672,
+  height: 941,
+
+  spawn: {
+    x: 836,
+    y: 820,
+    direction: 'up',
+  },
+
+  path: {
+    mode: 'box',
+    xMin: 480,
+    xMax: 1180,
+    yMin: 720,
+    yMax: 910,
+  },
+
+  /**
+   * Dorm-only: Sude stands on the rug at furniture scale.
+   * Alpha ~736 → ~350px near / ~310px far (not Scene 1/2 values).
+   */
+  perspective: {
+    yNear: 910,
+    yFar: 720,
+    scaleNear: 0.48,
+    scaleFar: 0.42,
+  },
+
+  monitor: {
+    x: 838,
+    y: 353,
+    width: 180,
+    height: 130,
+    buttonWidth: 160,
+    buttonHeight: 36,
+  },
+
+  cafeButtonLabel: 'KAFEYE GERİ GİT',
+
+  movementSpeed: 120,
 }
 
 export const SCENE1_STATE = {
