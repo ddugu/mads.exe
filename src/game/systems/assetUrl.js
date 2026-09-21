@@ -1,6 +1,6 @@
 /**
  * Prefix public asset paths with Vite BASE_URL so GitHub Pages
- * (`/sude.exee/`) and local (`/`) both resolve correctly.
+ * (`/mads.exe/`) and local (`/`) both resolve correctly.
  *
  * @param {string} path relative path like `assets/foo.png` or `/assets/foo.png`
  * @returns {string}
