@@ -11,6 +11,7 @@ import { InputManager } from '../input/InputManager'
 import { createTouchDPad } from '../input/TouchDPad'
 import { LetterBoard } from '../ui/LetterBoard'
 import { ChestLock } from '../ui/ChestLock'
+import { lockShippedLetters, unlockShippedLetters } from '../data/letterStore'
 import { FadeTransition } from '../systems/FadeTransition'
 import {
   VIEWPORT_WIDTH,
@@ -202,9 +203,9 @@ export class ReunionScene extends Phaser.Scene {
     if (this.chestLock || this.letterBoard) return
     this.setWalkEnabled(false)
     this.chestLock = new ChestLock(this, {
-      onUnlock: () => {
+      onUnlock: (typed) => {
         this.chestLock = null
-        this.openChest()
+        void this.openChest(typed)
       },
       onClose: () => {
         this.chestLock = null
@@ -213,9 +214,14 @@ export class ReunionScene extends Phaser.Scene {
     })
   }
 
-  openChest() {
+  async openChest(typed) {
     if (this.chestOpened) {
       this.showLetters()
+      return
+    }
+    const opened = await unlockShippedLetters(typed ?? '')
+    if (!opened) {
+      this.setWalkEnabled(true)
       return
     }
     this.chestOpened = true
@@ -258,6 +264,7 @@ export class ReunionScene extends Phaser.Scene {
     this.letterBoard = null
     this.chestLock?.destroy()
     this.chestLock = null
+    lockShippedLetters()
     this.touchPad?.destroy()
     this.touchPad = null
     this.inputManager?.destroy()

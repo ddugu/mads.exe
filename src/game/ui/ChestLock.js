@@ -101,7 +101,8 @@ export class ChestLock {
     if (this.busy) return
     this.busy = true
     this.error.hidden = true
-    const ok = await this.check(this.input?.value ?? '')
+    const typed = this.input?.value ?? ''
+    const ok = await this.check(typed)
     this.busy = false
     if (!ok) {
       this.error.hidden = false
@@ -110,13 +111,16 @@ export class ChestLock {
       this.input.focus()
       return
     }
-    this.unlock()
+    this.unlock(typed)
   }
 
-  unlock() {
+  /**
+   * @param {string} [typed]
+   */
+  unlock(typed) {
     this.el?.classList.remove('sude-letter-board--visible')
     this.destroy()
-    this.onUnlock?.()
+    this.onUnlock?.(typed)
   }
 
   close() {

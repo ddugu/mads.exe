@@ -1,72 +1,96 @@
 import { SCENE_07_LETTERS } from './scene07'
 import { assetUrl } from '../systems/assetUrl'
-
-const STORAGE_KEY = 'sude.exe.letters.v1'
-
-/**
- * Letters shipped in the game so every visitor sees them.
- * @type {Record<string, { body: string, imagePath?: string }>}
- */
-export const DEFAULT_LETTERS = {}
+import { SEALED_LETTERS } from './sealedLetters'
 
 /** @typedef {{ body: string, image: string | null }} LetterRecord */
+
+/** @type {Record<string, LetterRecord> | null} */
+let unlockedLetters = null
+/** @type {string[]} */
+const blobUrls = []
 
 function emptyRecord() {
   return { body: '', image: null }
 }
 
-function emptyMap() {
-  /** @type {Record<string, LetterRecord>} */
-  const map = {}
-  for (const letter of SCENE_07_LETTERS) {
-    map[letter.id] = emptyRecord()
-  }
-  return map
+/**
+ * @param {string} passphrase
+ */
+async function importAesKey(passphrase) {
+  const digest = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(String(passphrase ?? '').trim()),
+  )
+  return crypto.subtle.importKey('raw', digest, 'AES-GCM', false, ['decrypt'])
 }
 
 /**
- * @param {unknown} value
- * @returns {LetterRecord}
+ * @param {string} b64
  */
-function normalize(value) {
-  if (typeof value === 'string') {
-    return { body: value, image: null }
-  }
-  if (value && typeof value === 'object') {
-    const rec = /** @type {Record<string, unknown>} */ (value)
-    return {
-      body: typeof rec.body === 'string' ? rec.body : '',
-      image: typeof rec.image === 'string' && rec.image ? rec.image : null,
-    }
-  }
-  return emptyRecord()
+function b64ToBytes(b64) {
+  const bin = atob(b64)
+  const out = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i += 1) out[i] = bin.charCodeAt(i)
+  return out
 }
 
-function readAll() {
-  const base = emptyMap()
-  if (typeof localStorage === 'undefined') return base
+/**
+ * @param {CryptoKey} key
+ * @param {Uint8Array} packed
+ */
+async function decryptPacked(key, packed) {
+  const iv = packed.slice(0, 12)
+  const data = packed.slice(12)
+  const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, data)
+  return new Uint8Array(plain)
+}
+
+/**
+ * Unlock shipped letters with the chest passphrase. Returns false if decrypt fails.
+ * @param {string} passphrase
+ */
+export async function unlockShippedLetters(passphrase) {
+  lockShippedLetters()
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return base
-    const parsed = JSON.parse(raw)
-    if (!parsed || typeof parsed !== 'object') return base
+    const key = await importAesKey(passphrase)
+    /** @type {Record<string, LetterRecord>} */
+    const map = {}
     for (const letter of SCENE_07_LETTERS) {
-      base[letter.id] = normalize(parsed[letter.id])
+      const sealed = SEALED_LETTERS[letter.id]
+      if (!sealed?.body) {
+        map[letter.id] = emptyRecord()
+        continue
+      }
+      const bodyBytes = await decryptPacked(key, b64ToBytes(sealed.body))
+      const body = new TextDecoder().decode(bodyBytes)
+      let image = null
+      if (sealed.image) {
+        const res = await fetch(assetUrl(sealed.image))
+        if (!res.ok) throw new Error('image')
+        const packed = new Uint8Array(await res.arrayBuffer())
+        const raw = await decryptPacked(key, packed)
+        const blob = new Blob([raw], { type: sealed.imageMime || 'image/png' })
+        image = URL.createObjectURL(blob)
+        blobUrls.push(image)
+      }
+      map[letter.id] = { body, image }
     }
-  } catch {
-    return base
-  }
-  return base
-}
-
-function writeAll(map) {
-  if (typeof localStorage === 'undefined') return false
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(map))
+    unlockedLetters = map
     return true
   } catch {
+    lockShippedLetters()
     return false
   }
+}
+
+export function lockShippedLetters() {
+  for (const url of blobUrls) URL.revokeObjectURL(url)
+  blobUrls.length = 0
+  unlockedLetters = null
+}
+
+export function lettersAreUnlocked() {
+  return unlockedLetters !== null
 }
 
 /**
@@ -74,13 +98,7 @@ function writeAll(map) {
  * @returns {LetterRecord}
  */
 export function getLetter(id) {
-  const saved = readAll()[id] ?? emptyRecord()
-  const shipped = DEFAULT_LETTERS[id]
-  if (!shipped) return saved
-  return {
-    body: saved.body.trim() ? saved.body : shipped.body,
-    image: saved.image || (shipped.imagePath ? assetUrl(shipped.imagePath) : null),
-  }
+  return unlockedLetters?.[id] ?? emptyRecord()
 }
 
 /**
@@ -97,75 +115,4 @@ export function getLetterBody(id) {
  */
 export function getLetterImage(id) {
   return getLetter(id).image
-}
-
-/**
- * @param {string} id
- * @param {string} body
- * @returns {boolean}
- */
-export function setLetterBody(id, body) {
-  const map = readAll()
-  map[id] = { ...map[id], body }
-  return writeAll(map)
-}
-
-/**
- * @param {string} id
- * @param {string | null} image
- * @returns {boolean}
- */
-export function setLetterImage(id, image) {
-  const map = readAll()
-  map[id] = { ...map[id], image }
-  return writeAll(map)
-}
-
-/**
- * @param {string} id
- */
-export function clearLetterBody(id) {
-  const map = readAll()
-  map[id] = emptyRecord()
-  writeAll(map)
-}
-
-const MAX_EDGE = 720
-const JPEG_QUALITY = 0.72
-
-/**
- * Shrink a user photo for localStorage.
- * @param {File} file
- * @returns {Promise<string>}
- */
-export function compressLetterImage(file) {
-  return new Promise((resolve, reject) => {
-    if (!file || !file.type.startsWith('image/')) {
-      reject(new Error('image'))
-      return
-    }
-    const reader = new FileReader()
-    reader.onerror = () => reject(new Error('read'))
-    reader.onload = () => {
-      const img = new Image()
-      img.onload = () => {
-        const scale = Math.min(1, MAX_EDGE / Math.max(img.width, img.height))
-        const w = Math.max(1, Math.round(img.width * scale))
-        const h = Math.max(1, Math.round(img.height * scale))
-        const canvas = document.createElement('canvas')
-        canvas.width = w
-        canvas.height = h
-        const ctx = canvas.getContext('2d')
-        if (!ctx) {
-          reject(new Error('canvas'))
-          return
-        }
-        ctx.drawImage(img, 0, 0, w, h)
-        resolve(canvas.toDataURL('image/jpeg', JPEG_QUALITY))
-      }
-      img.onerror = () => reject(new Error('decode'))
-      img.src = String(reader.result)
-    }
-    reader.readAsDataURL(file)
-  })
 }
