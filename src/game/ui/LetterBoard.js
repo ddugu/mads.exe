@@ -1,12 +1,14 @@
 import { SCENE_07_LETTERS } from '../data/scene07'
 import {
-  getLetterBody,
+  getLetter,
   setLetterBody,
+  setLetterImage,
   clearLetterBody,
+  compressLetterImage,
 } from '../data/letterStore'
 
 /**
- * Paper letter list + per-letter pages (EKLE / DÜZENLE / SİL).
+ * Paper letter list + per-letter pages (EKLE / DÜZENLE / SİL + fotoğraf).
  */
 export class LetterBoard {
   /**
@@ -23,6 +25,7 @@ export class LetterBoard {
     /** @type {string | null} */
     this.activeId = null
     this.confirmingDelete = false
+    this.photoError = ''
 
     const parent =
       scene.game?.canvas?.parentElement ?? document.getElementById('phaser-frame')
@@ -68,6 +71,7 @@ export class LetterBoard {
         this.activeId = letter.id
         this.view = 'page'
         this.confirmingDelete = false
+        this.photoError = ''
         this.render()
       })
       this.paper.appendChild(row)
@@ -85,6 +89,25 @@ export class LetterBoard {
     return SCENE_07_LETTERS.find((l) => l.id === this.activeId) ?? null
   }
 
+  appendPhoto(parent, image, { canRemove = false, letterId = '' } = {}) {
+    if (!image) return
+    const wrap = document.createElement('div')
+    wrap.className = 'sude-letter-page__photo'
+    const img = document.createElement('img')
+    img.src = image
+    img.alt = 'mektup fotoğrafı'
+    wrap.appendChild(img)
+    if (canRemove && letterId) {
+      wrap.appendChild(
+        this.makeBtn('FOTOĞRAFI KALDIR', 'sude-letter-page__btn', () => {
+          setLetterImage(letterId, null)
+          this.render()
+        }),
+      )
+    }
+    parent.appendChild(wrap)
+  }
+
   renderPage() {
     const letter = this.currentLetter()
     if (!letter) {
@@ -93,7 +116,7 @@ export class LetterBoard {
       return
     }
 
-    const body = getLetterBody(letter.id)
+    const rec = getLetter(letter.id)
     this.paper.classList.add('sude-letter-board__paper--page')
 
     const page = document.createElement('div')
@@ -118,13 +141,16 @@ export class LetterBoard {
 
     const bodyEl = document.createElement('div')
     bodyEl.className = 'sude-letter-page__body'
-    if (body.trim()) {
-      bodyEl.textContent = body
+    if (rec.body.trim()) {
+      bodyEl.textContent = rec.body
     } else {
       bodyEl.classList.add('is-empty')
-      bodyEl.textContent = 'bu mektup henüz boş'
+      bodyEl.textContent = rec.image
+        ? 'yazı yok — fotoğraf mektupta'
+        : 'bu mektup henüz boş'
     }
     page.appendChild(bodyEl)
+    this.appendPhoto(page, rec.image)
 
     const actions = document.createElement('div')
     actions.className = 'sude-letter-page__actions'
@@ -132,11 +158,13 @@ export class LetterBoard {
     const addBtn = this.makeBtn('EKLE', 'sude-letter-page__btn', () => {
       this.view = 'edit'
       this.confirmingDelete = false
+      this.photoError = ''
       this.render()
     })
     const editBtn = this.makeBtn('DÜZENLE', 'sude-letter-page__btn', () => {
       this.view = 'edit'
       this.confirmingDelete = false
+      this.photoError = ''
       this.render()
     })
     const delBtn = this.makeBtn('SİL', 'sude-letter-page__btn sude-letter-page__btn--danger', () => {
@@ -150,7 +178,7 @@ export class LetterBoard {
       const confirm = document.createElement('div')
       confirm.className = 'sude-letter-page__confirm'
       const msg = document.createElement('p')
-      msg.textContent = 'Bu mektubun yazısı silinsin mi?'
+      msg.textContent = 'Bu mektubun yazısı ve fotoğrafı silinsin mi?'
       const row = document.createElement('div')
       row.className = 'sude-letter-page__actions'
       row.append(
@@ -174,6 +202,7 @@ export class LetterBoard {
       this.activeId = null
       this.view = 'list'
       this.confirmingDelete = false
+      this.photoError = ''
       this.render()
     })
     page.appendChild(back)
@@ -190,6 +219,7 @@ export class LetterBoard {
     }
 
     this.paper.classList.add('sude-letter-board__paper--page')
+    const rec = getLetter(letter.id)
 
     const page = document.createElement('div')
     page.className = 'sude-letter-page'
@@ -201,10 +231,43 @@ export class LetterBoard {
 
     const area = document.createElement('textarea')
     area.className = 'sude-letter-page__input'
-    area.value = getLetterBody(letter.id)
+    area.value = rec.body
     area.setAttribute('aria-label', letter.title)
     area.spellcheck = false
     page.appendChild(area)
+
+    this.appendPhoto(page, rec.image, { canRemove: true, letterId: letter.id })
+
+    const file = document.createElement('input')
+    file.type = 'file'
+    file.accept = 'image/*'
+    file.className = 'sude-letter-page__file'
+    file.addEventListener('change', async () => {
+      const picked = file.files?.[0]
+      file.value = ''
+      if (!picked) return
+      try {
+        const dataUrl = await compressLetterImage(picked)
+        const ok = setLetterImage(letter.id, dataUrl)
+        this.photoError = ok ? '' : 'fotoğraf kaydedilemedi (çok büyük olabilir)'
+      } catch {
+        this.photoError = 'bu dosya bir resim değil'
+      }
+      this.render()
+    })
+
+    const photoBtn = this.makeBtn('FOTOĞRAF EKLE', 'sude-letter-page__btn', () => {
+      file.click()
+    })
+    page.appendChild(file)
+    page.appendChild(photoBtn)
+
+    if (this.photoError) {
+      const err = document.createElement('p')
+      err.className = 'sude-letter-page__error'
+      err.textContent = this.photoError
+      page.appendChild(err)
+    }
 
     const actions = document.createElement('div')
     actions.className = 'sude-letter-page__actions'
@@ -212,10 +275,12 @@ export class LetterBoard {
       this.makeBtn('KAYDET', 'sude-letter-page__btn sude-letter-page__btn--save', () => {
         setLetterBody(letter.id, area.value)
         this.view = 'page'
+        this.photoError = ''
         this.render()
       }),
       this.makeBtn('VAZGEÇ', 'sude-letter-page__btn', () => {
         this.view = 'page'
+        this.photoError = ''
         this.render()
       }),
     )
