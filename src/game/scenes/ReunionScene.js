@@ -1,6 +1,5 @@
 import Phaser from 'phaser'
-import { SCENE_07, SCENE7_VISIBLE_HEIGHT } from '../data/scene07'
-import { scaleForVisibleHeight } from '../data/characterScale'
+import { SCENE_07 } from '../data/scene07'
 import { SCENE_KEYS } from '../data/scene01'
 import {
   SUDE_COLOR,
@@ -104,10 +103,7 @@ export class ReunionScene extends Phaser.Scene {
   placeSude() {
     const s = SCENE_07.sude
     applySudeNearestFilter(this, SUDE_COLOR)
-    const scale = scaleForVisibleHeight(
-      s.visibleAlphaHeight,
-      SCENE7_VISIBLE_HEIGHT,
-    )
+    const scale = s.scale
     this.logCharacterTexture(s.displayName, s.textureKey, s.texturePath, s.visibleAlphaHeight, scale)
     this.sude = new Sude(this, s.x, s.y, {
       spritePack: SUDE_COLOR,
@@ -140,7 +136,7 @@ export class ReunionScene extends Phaser.Scene {
     const th = src && 'height' in src ? src.height : tex?.source?.[0]?.height
     const visibleH = visibleAlphaHeight * scale
     console.info(
-      `${name}\n→ ${texturePath}\n→ ${tw} × ${th}\n→ scale: ${scale.toFixed(5)}\n→ visible height: ${visibleH.toFixed(1)}`,
+      `${name}\n→ ${texturePath}\n→ ${tw} × ${th}\n→ scale: ${scale.toFixed(5)}\n→ alpha bounding-box height: ${visibleAlphaHeight}\n→ visible height: ${visibleH.toFixed(1)}`,
     )
   }
 
@@ -150,10 +146,7 @@ export class ReunionScene extends Phaser.Scene {
       if (this.textures.exists(ch.textureKey)) {
         this.textures.get(ch.textureKey).setFilter(Phaser.Textures.FilterMode.NEAREST)
       }
-      const scale = scaleForVisibleHeight(
-        ch.visibleAlphaHeight,
-        SCENE7_VISIBLE_HEIGHT,
-      )
+      const scale = ch.scale
       this.logCharacterTexture(
         ch.displayName,
         ch.textureKey,

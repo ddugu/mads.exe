@@ -5,21 +5,17 @@ import {
 } from './characterScale'
 
 /**
- * Scene 7 only. Opaque character height after uniform sprite scale.
- * Not 168 — large enough that faces/hands/clothes stay readable.
+ * Scene 7 only. Per-character opaque height (alpha bbox × uniform scale).
+ * Not a shared 168/280 target — cafe-furniture chibi size, faces still readable.
+ * Sude ~ Scene 2 cafe near (scale 0.18 → ~132 px).
  */
-export const SCENE7_VISIBLE_HEIGHT = 280
-
-function sc(alphaH) {
-  return scaleForVisibleHeight(alphaH, SCENE7_VISIBLE_HEIGHT)
+function visScale(alphaH, visiblePx) {
+  return scaleForVisibleHeight(alphaH, visiblePx)
 }
 
 /**
  * Scene 7 — reunion cafe. Native scene-07.png = 1536×1024.
- * 7 family + Soobin + Yeonjun on the counter floor; chest in front.
- *
- * Each `x` is centered from measured alpha width + 22px gaps, then
- * the whole lineup is centered in the 1536px room.
+ * Existing PNG textures only. Oval around chest (768, 612).
  */
 export const SCENE_07 = {
   key: 'ReunionScene',
@@ -28,21 +24,18 @@ export const SCENE_07 = {
   width: 1536,
   height: 1024,
 
-  /** Shared feet line in front of the counter. */
   floorY: 518,
 
-  /**
-   * Color Sude. Uniform scale from alpha bbox → SCENE7_VISIBLE_HEIGHT.
-   */
   sude: {
     id: 'sude',
     displayName: 'Sude',
     textureKey: 'sude-color-down',
     texturePath: 'assets/characters/sude/sude-color-down.png',
-    x: 500,
-    y: 800,
+    x: 555,
+    y: 742,
     visibleAlphaHeight: VISIBLE_ALPHA_HEIGHT.sude,
-    scale: scaleForVisibleHeight(VISIBLE_ALPHA_HEIGHT.sude, SCENE7_VISIBLE_HEIGHT),
+    visibleHeight: 134,
+    scale: visScale(VISIBLE_ALPHA_HEIGHT.sude, 134),
     originY: CHAR_ORIGIN_Y.sude,
   },
 
@@ -53,10 +46,11 @@ export const SCENE_07 = {
       letterName: 'YURİN MEKTUP',
       textureKey: 'family-yurin',
       texturePath: 'assets/characters/family/yurin.png',
-      x: 340,
-      y: 640,
+      x: 430,
+      y: 618,
       visibleAlphaHeight: VISIBLE_ALPHA_HEIGHT.familyYurin,
-      scale: sc(VISIBLE_ALPHA_HEIGHT.familyYurin),
+      visibleHeight: 144,
+      scale: visScale(VISIBLE_ALPHA_HEIGHT.familyYurin, 144),
       originY: 0.983,
     },
     {
@@ -65,10 +59,11 @@ export const SCENE_07 = {
       letterName: 'BURÇE MEKTUP',
       textureKey: 'family-burce',
       texturePath: 'assets/characters/family/burce.png',
-      x: 455,
-      y: 530,
+      x: 515,
+      y: 555,
       visibleAlphaHeight: VISIBLE_ALPHA_HEIGHT.familyBurce,
-      scale: sc(VISIBLE_ALPHA_HEIGHT.familyBurce),
+      visibleHeight: 146,
+      scale: visScale(VISIBLE_ALPHA_HEIGHT.familyBurce, 146),
       originY: 0.984,
     },
     {
@@ -77,10 +72,11 @@ export const SCENE_07 = {
       letterName: 'DİLARA MEKTUP',
       textureKey: 'family-dilara',
       texturePath: 'assets/characters/family/dilara.png',
-      x: 610,
-      y: 485,
+      x: 635,
+      y: 518,
       visibleAlphaHeight: VISIBLE_ALPHA_HEIGHT.familyDilara,
-      scale: sc(VISIBLE_ALPHA_HEIGHT.familyDilara),
+      visibleHeight: 152,
+      scale: visScale(VISIBLE_ALPHA_HEIGHT.familyDilara, 152),
       originY: 0.98,
     },
     {
@@ -89,10 +85,11 @@ export const SCENE_07 = {
       letterName: 'ZERA MEKTUP',
       textureKey: 'family-zera',
       texturePath: 'assets/characters/family/zera.png',
-      x: 930,
-      y: 485,
+      x: 900,
+      y: 518,
       visibleAlphaHeight: VISIBLE_ALPHA_HEIGHT.familyZera,
-      scale: sc(VISIBLE_ALPHA_HEIGHT.familyZera),
+      visibleHeight: 130,
+      scale: visScale(VISIBLE_ALPHA_HEIGHT.familyZera, 130),
       originY: 0.951,
     },
     {
@@ -101,10 +98,11 @@ export const SCENE_07 = {
       letterName: 'SEVDE MEKTUP',
       textureKey: 'family-sevde',
       texturePath: 'assets/characters/family/sevde.png',
-      x: 1085,
-      y: 530,
+      x: 1025,
+      y: 555,
       visibleAlphaHeight: VISIBLE_ALPHA_HEIGHT.familySevde,
-      scale: sc(VISIBLE_ALPHA_HEIGHT.familySevde),
+      visibleHeight: 132,
+      scale: visScale(VISIBLE_ALPHA_HEIGHT.familySevde, 132),
       originY: 0.965,
     },
     {
@@ -113,10 +111,11 @@ export const SCENE_07 = {
       letterName: 'İREM MEKTUP',
       textureKey: 'family-irem',
       texturePath: 'assets/characters/family/irem.png',
-      x: 1195,
-      y: 640,
+      x: 1100,
+      y: 618,
       visibleAlphaHeight: VISIBLE_ALPHA_HEIGHT.familyIrem,
-      scale: sc(VISIBLE_ALPHA_HEIGHT.familyIrem),
+      visibleHeight: 124,
+      scale: visScale(VISIBLE_ALPHA_HEIGHT.familyIrem, 124),
       originY: 0.941,
     },
     {
@@ -125,10 +124,11 @@ export const SCENE_07 = {
       letterName: 'DUYGU MEKTUP',
       textureKey: 'family-duygu',
       texturePath: 'assets/characters/family/duygu.png',
-      x: 400,
-      y: 735,
+      x: 475,
+      y: 688,
       visibleAlphaHeight: VISIBLE_ALPHA_HEIGHT.familyDuygu,
-      scale: sc(VISIBLE_ALPHA_HEIGHT.familyDuygu),
+      visibleHeight: 150,
+      scale: visScale(VISIBLE_ALPHA_HEIGHT.familyDuygu, 150),
       originY: 0.992,
     },
     {
@@ -137,10 +137,11 @@ export const SCENE_07 = {
       letterName: null,
       textureKey: 'yeonjun-noona-down',
       texturePath: 'assets/characters/yeonjun/yeonjun-noona-down.png',
-      x: 590,
-      y: 800,
+      x: 645,
+      y: 742,
       visibleAlphaHeight: VISIBLE_ALPHA_HEIGHT.yeonjun,
-      scale: sc(VISIBLE_ALPHA_HEIGHT.yeonjun),
+      visibleHeight: 138,
+      scale: visScale(VISIBLE_ALPHA_HEIGHT.yeonjun, 138),
       originY: 0.959,
     },
     {
@@ -149,10 +150,11 @@ export const SCENE_07 = {
       letterName: null,
       textureKey: 'family-tyunning',
       texturePath: 'assets/characters/family/tyunning.png',
-      x: 900,
-      y: 800,
+      x: 895,
+      y: 742,
       visibleAlphaHeight: VISIBLE_ALPHA_HEIGHT.familyTyunning,
-      scale: sc(VISIBLE_ALPHA_HEIGHT.familyTyunning),
+      visibleHeight: 136,
+      scale: visScale(VISIBLE_ALPHA_HEIGHT.familyTyunning, 136),
       originY: 0.984,
     },
     {
@@ -161,10 +163,11 @@ export const SCENE_07 = {
       letterName: null,
       textureKey: 'soobin-down',
       texturePath: 'assets/characters/soobin/soobin-down.png',
-      x: 1020,
-      y: 735,
+      x: 1025,
+      y: 688,
       visibleAlphaHeight: VISIBLE_ALPHA_HEIGHT.soobinNormal,
-      scale: sc(VISIBLE_ALPHA_HEIGHT.soobinNormal),
+      visibleHeight: 126,
+      scale: visScale(VISIBLE_ALPHA_HEIGHT.soobinNormal, 126),
       originY: 0.999,
     },
     {
@@ -173,15 +176,15 @@ export const SCENE_07 = {
       letterName: null,
       textureKey: 'family-beomgyu',
       texturePath: 'assets/characters/family/beomgyu.png',
-      x: 1165,
-      y: 700,
+      x: 1140,
+      y: 655,
       visibleAlphaHeight: VISIBLE_ALPHA_HEIGHT.familyBeomgyu,
-      scale: sc(VISIBLE_ALPHA_HEIGHT.familyBeomgyu),
+      visibleHeight: 142,
+      scale: visScale(VISIBLE_ALPHA_HEIGHT.familyBeomgyu, 142),
       originY: 0.991,
     },
   ],
 
-  /** Walkable cafe floor for Sude in Scene 7. */
   sudeMove: {
     speed: 120,
     path: {
@@ -206,7 +209,6 @@ export const SCENE_07 = {
   },
 }
 
-/** Letter titles come from family character ids already in the project. */
 export const SCENE_07_LETTERS = SCENE_07.lineup
   .filter((c) => c.letterName)
   .map((c) => ({ id: c.id, title: c.letterName }))
