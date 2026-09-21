@@ -108,7 +108,7 @@ export class ReunionScene extends Phaser.Scene {
       s.visibleAlphaHeight,
       SCENE7_VISIBLE_HEIGHT,
     )
-    this.logCharacterTexture('sude', s.textureKey, s.texturePath, s.visibleAlphaHeight, scale)
+    this.logCharacterTexture(s.displayName, s.textureKey, s.texturePath, s.visibleAlphaHeight, scale)
     this.sude = new Sude(this, s.x, s.y, {
       spritePack: SUDE_COLOR,
       speed: SCENE_07.sudeMove.speed,
@@ -125,22 +125,22 @@ export class ReunionScene extends Phaser.Scene {
   }
 
   /**
-   * @param {string} id
+   * @param {string} name
    * @param {string} textureKey
    * @param {string} texturePath
    * @param {number} visibleAlphaHeight
    * @param {number} scale
    */
-  logCharacterTexture(id, textureKey, texturePath, visibleAlphaHeight, scale) {
+  logCharacterTexture(name, textureKey, texturePath, visibleAlphaHeight, scale) {
     const tex = this.textures.exists(textureKey)
       ? this.textures.get(textureKey)
       : null
     const src = tex?.getSourceImage?.()
-    const url =
-      (src && 'src' in src && typeof src.src === 'string' && src.src) ||
-      texturePath
+    const tw = src && 'width' in src ? src.width : tex?.source?.[0]?.width
+    const th = src && 'height' in src ? src.height : tex?.source?.[0]?.height
+    const visibleH = visibleAlphaHeight * scale
     console.info(
-      `[Scene7] ${id} png=${texturePath} key=${textureKey} url=${url} alphaBBoxH=${visibleAlphaHeight} scale=${scale.toFixed(5)} visibleH=${SCENE7_VISIBLE_HEIGHT}`,
+      `${name}\n→ ${texturePath}\n→ ${tw} × ${th}\n→ scale: ${scale.toFixed(5)}\n→ visible height: ${visibleH.toFixed(1)}`,
     )
   }
 
@@ -155,7 +155,7 @@ export class ReunionScene extends Phaser.Scene {
         SCENE7_VISIBLE_HEIGHT,
       )
       this.logCharacterTexture(
-        ch.id,
+        ch.displayName,
         ch.textureKey,
         ch.texturePath,
         ch.visibleAlphaHeight,
