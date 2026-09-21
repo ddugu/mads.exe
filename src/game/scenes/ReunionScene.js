@@ -10,6 +10,7 @@ import { Sude } from '../entities/Sude'
 import { InputManager } from '../input/InputManager'
 import { createTouchDPad } from '../input/TouchDPad'
 import { LetterBoard } from '../ui/LetterBoard'
+import { ChestLock } from '../ui/ChestLock'
 import { FadeTransition } from '../systems/FadeTransition'
 import {
   VIEWPORT_WIDTH,
@@ -29,6 +30,7 @@ export class ReunionScene extends Phaser.Scene {
     this.chestClose = null
     this.chestOpen = null
     this.letterBoard = null
+    this.chestLock = null
     this.chestOpened = false
     this.movementEnabled = false
   }
@@ -49,6 +51,7 @@ export class ReunionScene extends Phaser.Scene {
   create() {
     this.chestOpened = false
     this.letterBoard = null
+    this.chestLock = null
     this.movementEnabled = false
 
     const bg = this.add.image(0, 0, SCENE_07.textureKey)
@@ -174,7 +177,7 @@ export class ReunionScene extends Phaser.Scene {
     this.chestClose.setScale(c.closeScale)
     this.chestClose.setDepth(40 + c.y)
     this.chestClose.setInteractive({ useHandCursor: true })
-    this.chestClose.on('pointerdown', () => this.openChest())
+    this.chestClose.on('pointerdown', () => this.requestChestUnlock())
 
     this.chestOpen = this.add.image(c.x, c.y, c.openKey)
     this.chestOpen.setOrigin(0.5, c.originY)
@@ -191,8 +194,30 @@ export class ReunionScene extends Phaser.Scene {
     this.touchPad?.setVisible(on)
   }
 
+  requestChestUnlock() {
+    if (this.chestOpened) {
+      this.showLetters()
+      return
+    }
+    if (this.chestLock || this.letterBoard) return
+    this.setWalkEnabled(false)
+    this.chestLock = new ChestLock(this, {
+      onUnlock: () => {
+        this.chestLock = null
+        this.openChest()
+      },
+      onClose: () => {
+        this.chestLock = null
+        this.setWalkEnabled(true)
+      },
+    })
+  }
+
   openChest() {
-    if (this.chestOpened) return
+    if (this.chestOpened) {
+      this.showLetters()
+      return
+    }
     this.chestOpened = true
     this.chestClose.disableInteractive()
     this.chestClose.setVisible(false)
@@ -202,6 +227,7 @@ export class ReunionScene extends Phaser.Scene {
   }
 
   showLetters() {
+    if (!this.chestOpened) return
     if (this.letterBoard) return
     this.setWalkEnabled(false)
     this.letterBoard = new LetterBoard(this, {
@@ -218,7 +244,7 @@ export class ReunionScene extends Phaser.Scene {
    */
   update(_time, delta) {
     if (!this.sude || !this.inputManager) return
-    if (this.movementEnabled && !this.letterBoard) {
+    if (this.movementEnabled && !this.letterBoard && !this.chestLock) {
       const { x, y } = this.inputManager.getMoveVector()
       this.sude.setMoveInput(x, y)
     } else {
@@ -230,6 +256,8 @@ export class ReunionScene extends Phaser.Scene {
   shutdownScene() {
     this.letterBoard?.destroy()
     this.letterBoard = null
+    this.chestLock?.destroy()
+    this.chestLock = null
     this.touchPad?.destroy()
     this.touchPad = null
     this.inputManager?.destroy()
