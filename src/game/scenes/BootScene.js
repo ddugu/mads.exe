@@ -9,7 +9,7 @@ import { UI_FONT } from '../ui/uiFont'
 
 const BOOT_STEPS = [
   { text: 'gerekli programlar denetleniyor...', delayAfter: 1400, typing: true },
-  { text: 'sude.exe bulundu', delayAfter: 1100, typing: true },
+  { text: 'mads.exe bulundu', delayAfter: 1100, typing: true },
   { text: 'oyun yükleniyor...', delayAfter: 1200, typing: true },
 ]
 
