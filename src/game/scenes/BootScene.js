@@ -3,6 +3,8 @@ import { SCENE_KEYS } from '../data/scene01'
 import { FadeTransition } from '../systems/FadeTransition'
 import { applyFullscreenViewportCamera } from '../systems/GameViewport'
 import { preloadGameMusic } from '../systems/gameMusic'
+import { isBootPassphrase } from '../data/chestPass'
+import { ChestLock } from '../ui/ChestLock'
 import { UI_FONT } from '../ui/uiFont'
 
 const BOOT_STEPS = [
@@ -81,6 +83,11 @@ export class BootScene extends Phaser.Scene {
       repeat: -1,
     })
 
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.bootLock?.destroy()
+      this.bootLock = null
+    })
+
     this.showClickPrompt()
   }
 
@@ -127,9 +134,30 @@ export class BootScene extends Phaser.Scene {
       await this.fadeOutText(this.lineText)
     }
 
+    await this.askBootPassphrase()
+
     const fade = new FadeTransition(this)
     await fade.fadeOut(650)
     this.scene.start(SCENE_KEYS.SCENE_1)
+  }
+
+  askBootPassphrase() {
+    this.phase = 'locked'
+    this.lineText.setText('şifre gerekli')
+    this.lineText.setAlpha(1)
+    return new Promise((resolve) => {
+      this.bootLock = new ChestLock(this, {
+        allowCancel: false,
+        check: isBootPassphrase,
+        title: '♡ SUDE.EXE KİLİTLİ ♡',
+        hint: 'Oyunu başlatmak için şifreyi yaz.',
+        ariaLabel: 'Oyun şifresi',
+        onUnlock: () => {
+          this.bootLock = null
+          resolve()
+        },
+      })
+    })
   }
 
   /**

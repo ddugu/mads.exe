@@ -1,17 +1,27 @@
 import { isChestPassphrase } from '../data/chestPass'
 
 /**
- * DOM passphrase prompt before Scene 7 letters.
+ * DOM passphrase prompt (boot gate or Scene 7 chest).
  */
 export class ChestLock {
   /**
    * @param {Phaser.Scene} scene
-   * @param {{ onUnlock?: () => void, onClose?: () => void }} [options]
+   * @param {{
+   *   onUnlock?: () => void,
+   *   onClose?: () => void,
+   *   check?: (input: string) => Promise<boolean>,
+   *   title?: string,
+   *   hint?: string,
+   *   ariaLabel?: string,
+   *   allowCancel?: boolean,
+   * }} [options]
    */
   constructor(scene, options = {}) {
     this.scene = scene
     this.onUnlock = options.onUnlock
     this.onClose = options.onClose
+    this.check = options.check ?? isChestPassphrase
+    this.allowCancel = options.allowCancel !== false
     this.el = null
     this.busy = false
 
@@ -22,19 +32,19 @@ export class ChestLock {
     const el = document.createElement('div')
     el.className = 'sude-letter-board'
     el.setAttribute('role', 'dialog')
-    el.setAttribute('aria-label', 'Sandık şifresi')
+    el.setAttribute('aria-label', options.ariaLabel ?? 'Sandık şifresi')
 
     const paper = document.createElement('div')
     paper.className = 'sude-letter-board__paper sude-chest-lock'
 
     const heading = document.createElement('div')
     heading.className = 'sude-letter-board__heading'
-    heading.textContent = '♡ SANDIK KİLİTLİ ♡'
+    heading.textContent = options.title ?? '♡ SANDIK KİLİTLİ ♡'
     paper.appendChild(heading)
 
     const hint = document.createElement('p')
     hint.className = 'sude-chest-lock__hint'
-    hint.textContent = 'Mektupları okumak için şifreyi yaz.'
+    hint.textContent = options.hint ?? 'Mektupları okumak için şifreyi yaz.'
     paper.appendChild(hint)
 
     const form = document.createElement('form')
@@ -66,12 +76,14 @@ export class ChestLock {
     unlockBtn.textContent = 'AÇ'
     actions.appendChild(unlockBtn)
 
-    const cancelBtn = document.createElement('button')
-    cancelBtn.type = 'button'
-    cancelBtn.className = 'sude-letter-board__close'
-    cancelBtn.textContent = 'KAPAT'
-    cancelBtn.addEventListener('click', () => this.close())
-    actions.appendChild(cancelBtn)
+    if (this.allowCancel) {
+      const cancelBtn = document.createElement('button')
+      cancelBtn.type = 'button'
+      cancelBtn.className = 'sude-letter-board__close'
+      cancelBtn.textContent = 'KAPAT'
+      cancelBtn.addEventListener('click', () => this.close())
+      actions.appendChild(cancelBtn)
+    }
 
     form.appendChild(actions)
     paper.appendChild(form)
@@ -89,7 +101,7 @@ export class ChestLock {
     if (this.busy) return
     this.busy = true
     this.error.hidden = true
-    const ok = await isChestPassphrase(this.input?.value ?? '')
+    const ok = await this.check(this.input?.value ?? '')
     this.busy = false
     if (!ok) {
       this.error.hidden = false
