@@ -6,6 +6,9 @@ import {
   preloadSudeVariant,
   applySudeNearestFilter,
 } from '../data/sudeSprites'
+import { Sude } from '../entities/Sude'
+import { InputManager } from '../input/InputManager'
+import { createTouchDPad } from '../input/TouchDPad'
 import { LetterBoard } from '../ui/LetterBoard'
 import { FadeTransition } from '../systems/FadeTransition'
 import {
@@ -15,15 +18,19 @@ import {
 import { loadGameImage } from '../systems/assetUrl'
 
 /**
- * Scene 7 — reunion cafe: Sude + family + Soobin + Yeonjun, then chest → letters.
+ * Scene 7 — reunion cafe: walkable Sude + family + Soobin/Yeonjun/Beomgyu/Tyunning.
  */
 export class ReunionScene extends Phaser.Scene {
   constructor() {
     super(SCENE_KEYS.SCENE_7)
+    this.sude = null
+    this.inputManager = null
+    this.touchPad = null
     this.chestClose = null
     this.chestOpen = null
     this.letterBoard = null
     this.chestOpened = false
+    this.movementEnabled = false
   }
 
   preload() {
@@ -42,18 +49,31 @@ export class ReunionScene extends Phaser.Scene {
   create() {
     this.chestOpened = false
     this.letterBoard = null
+    this.movementEnabled = false
 
     const bg = this.add.image(0, 0, SCENE_07.textureKey)
     bg.setOrigin(0, 0)
     bg.setDepth(0)
 
     this.setupCamera()
-    this.placeSude()
+    this.physics.world.setBounds(0, 0, SCENE_07.width, SCENE_07.height)
+
     this.placeLineup()
     this.placeChest()
+    this.placeSude()
+
+    this.inputManager = new InputManager(this)
+    this.inputManager.setEnabled(false)
+    this.touchPad = createTouchDPad(this)
+    this.touchPad?.setVisible(false)
 
     const fade = new FadeTransition(this)
-    void fade.fadeIn(650)
+    void fade.fadeIn(650).then(() => {
+      this.movementEnabled = true
+      this.inputManager.setEnabled(true)
+      this.sude.setLocked(false)
+      this.touchPad?.setVisible(true)
+    })
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdownScene, this)
     this.events.once(Phaser.Scenes.Events.DESTROY, this.shutdownScene, this)
@@ -83,10 +103,19 @@ export class ReunionScene extends Phaser.Scene {
   placeSude() {
     const s = SCENE_07.sude
     applySudeNearestFilter(this, SUDE_COLOR)
-    const spr = this.add.image(s.x, s.y, s.textureKey)
-    spr.setOrigin(0.5, s.originY)
-    spr.setScale(s.scale)
-    spr.setDepth(20 + s.y)
+    this.sude = new Sude(this, s.x, s.y, {
+      spritePack: SUDE_COLOR,
+      speed: SCENE_07.sudeMove.speed,
+      direction: 'down',
+      path: { ...SCENE_07.sudeMove.path },
+      perspective: {
+        yNear: s.y,
+        yFar: s.y,
+        scaleNear: s.scale,
+        scaleFar: s.scale,
+      },
+    })
+    this.sude.setLocked(true)
   }
 
   placeLineup() {
@@ -125,6 +154,13 @@ export class ReunionScene extends Phaser.Scene {
     this.chestOpen.on('pointerdown', () => this.showLetters())
   }
 
+  setWalkEnabled(on) {
+    this.movementEnabled = on
+    this.inputManager?.setEnabled(on)
+    this.sude?.setLocked(!on)
+    this.touchPad?.setVisible(on)
+  }
+
   openChest() {
     if (this.chestOpened) return
     this.chestOpened = true
@@ -137,16 +173,39 @@ export class ReunionScene extends Phaser.Scene {
 
   showLetters() {
     if (this.letterBoard) return
+    this.setWalkEnabled(false)
     this.letterBoard = new LetterBoard(this, {
       onClose: () => {
         this.letterBoard = null
+        this.setWalkEnabled(true)
       },
     })
+  }
+
+  /**
+   * @param {number} _time
+   * @param {number} delta
+   */
+  update(_time, delta) {
+    if (!this.sude || !this.inputManager) return
+    if (this.movementEnabled && !this.letterBoard) {
+      const { x, y } = this.inputManager.getMoveVector()
+      this.sude.setMoveInput(x, y)
+    } else {
+      this.sude.setMoveInput(0, 0)
+    }
+    this.sude.update(delta)
   }
 
   shutdownScene() {
     this.letterBoard?.destroy()
     this.letterBoard = null
+    this.touchPad?.destroy()
+    this.touchPad = null
+    this.inputManager?.destroy()
+    this.inputManager = null
+    this.sude?.destroy()
+    this.sude = null
     this.chestClose = null
     this.chestOpen = null
   }

@@ -132,7 +132,39 @@ export const SCENE_07 = {
       scale: sc(VISIBLE_ALPHA_HEIGHT.yeonjun),
       originY: 0.959,
     },
+    {
+      id: 'tyunning',
+      letterName: null,
+      textureKey: 'family-tyunning',
+      texturePath: 'assets/characters/family/tyunning.png',
+      x: 960,
+      y: 700,
+      scale: sc(VISIBLE_ALPHA_HEIGHT.familyTyunning),
+      originY: 0.988,
+    },
+    {
+      id: 'beomgyu',
+      letterName: null,
+      textureKey: 'family-beomgyu',
+      texturePath: 'assets/characters/family/beomgyu.png',
+      x: 1155,
+      y: 705,
+      scale: sc(VISIBLE_ALPHA_HEIGHT.familyBeomgyu),
+      originY: 0.993,
+    },
   ],
+
+  /** Walkable cafe floor for Sude in Scene 7. */
+  sudeMove: {
+    speed: 120,
+    path: {
+      mode: 'box',
+      xMin: 220,
+      xMax: 1320,
+      yMin: 455,
+      yMax: 900,
+    },
+  },
 
   chest: {
     x: 768,

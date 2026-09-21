@@ -29,6 +29,8 @@ export const VISIBLE_ALPHA_HEIGHT = {
   familyZera: 1275,
   familySevde: 1270,
   familyIrem: 1165,
+  familyBeomgyu: 1514,
+  familyTyunning: 1295,
   chestClose: 557,
   chestOpen: 740,
 }

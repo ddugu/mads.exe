@@ -54,6 +54,9 @@ export function createGameConfig(parent) {
       DormScene,
       ReunionScene,
     ],
+    audio: {
+      disableWebAudio: false,
+    },
     input: {
       keyboard: true,
       activePointers: 3,

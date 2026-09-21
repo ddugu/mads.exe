@@ -18,6 +18,7 @@ import { FadeTransition, fadeToScene } from '../systems/FadeTransition'
 import { PixelPopup } from '../ui/PixelPopup'
 import { applyFullscreenViewportCamera } from '../systems/GameViewport'
 import { loadGameImage } from '../systems/assetUrl'
+import { playGameMusic, preloadGameMusic } from '../systems/gameMusic'
 
 /**
  * Scene 1 — grayscale road toward SUDE.EXE gate.
@@ -40,6 +41,7 @@ export class Scene1 extends Phaser.Scene {
   preload() {
     loadGameImage(this, SCENE_01.textureKey, SCENE_01.texturePath)
     preloadSudeTextures(this)
+    preloadGameMusic(this)
 
     this.load.on('loaderror', (file) => {
       console.error('[Scene1] Asset load failed:', file?.key, file?.url)
@@ -54,6 +56,7 @@ export class Scene1 extends Phaser.Scene {
 
     this.createBackground()
     this.applyTextureFilters()
+    playGameMusic(this)
 
     applyFullscreenViewportCamera(this)
 

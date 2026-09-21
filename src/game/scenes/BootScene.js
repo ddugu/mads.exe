@@ -2,6 +2,7 @@ import Phaser from 'phaser'
 import { SCENE_KEYS } from '../data/scene01'
 import { FadeTransition } from '../systems/FadeTransition'
 import { applyFullscreenViewportCamera } from '../systems/GameViewport'
+import { preloadGameMusic } from '../systems/gameMusic'
 import { UI_FONT } from '../ui/uiFont'
 
 const BOOT_STEPS = [
@@ -21,6 +22,13 @@ export class BootScene extends Phaser.Scene {
     this.lineText = null
     this.promptHint = null
     this.clickArmed = false
+  }
+
+  preload() {
+    preloadGameMusic(this)
+    this.load.on('loaderror', (file) => {
+      console.error('[BootScene] Asset load failed:', file?.key, file?.url)
+    })
   }
 
   create() {
@@ -95,6 +103,7 @@ export class BootScene extends Phaser.Scene {
     this.input.once('pointerdown', () => {
       if (!this.clickArmed) return
       this.clickArmed = false
+      this.sound?.unlock()
       void this.runBootSequence()
     })
   }
