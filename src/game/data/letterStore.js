@@ -1,6 +1,13 @@
 import { SCENE_07_LETTERS } from './scene07'
+import { assetUrl } from '../systems/assetUrl'
 
 const STORAGE_KEY = 'sude.exe.letters.v1'
+
+/**
+ * Letters shipped in the game so every visitor sees them.
+ * @type {Record<string, { body: string, imagePath?: string }>}
+ */
+export const DEFAULT_LETTERS = {}
 
 /** @typedef {{ body: string, image: string | null }} LetterRecord */
 
@@ -67,7 +74,13 @@ function writeAll(map) {
  * @returns {LetterRecord}
  */
 export function getLetter(id) {
-  return readAll()[id] ?? emptyRecord()
+  const saved = readAll()[id] ?? emptyRecord()
+  const shipped = DEFAULT_LETTERS[id]
+  if (!shipped) return saved
+  return {
+    body: saved.body.trim() ? saved.body : shipped.body,
+    image: saved.image || (shipped.imagePath ? assetUrl(shipped.imagePath) : null),
+  }
 }
 
 /**
