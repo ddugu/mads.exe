@@ -22,7 +22,7 @@ export const VISIBLE_ALPHA_HEIGHT = {
   soobinNormal: 508,
   yeonjun: 731,
   yeonbinHug: 1407,
-  familyDuygu: 1491,
+  familyDuygu: 1506,
   familyYurin: 1449,
   familyBurce: 1473,
   familyDilara: 1444,

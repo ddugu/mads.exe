@@ -50,7 +50,7 @@ export const SCENE_07 = {
       x: 490,
       y: 690,
       scale: sc(VISIBLE_ALPHA_HEIGHT.familyDuygu),
-      originY: 0.981,
+      originY: 0.992,
     },
     {
       id: 'yurin',
