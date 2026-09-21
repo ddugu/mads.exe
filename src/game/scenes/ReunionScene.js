@@ -1,5 +1,6 @@
 import Phaser from 'phaser'
-import { SCENE_07 } from '../data/scene07'
+import { SCENE_07, SCENE7_VISIBLE_HEIGHT } from '../data/scene07'
+import { scaleForVisibleHeight } from '../data/characterScale'
 import { SCENE_KEYS } from '../data/scene01'
 import {
   SUDE_COLOR,
@@ -103,6 +104,11 @@ export class ReunionScene extends Phaser.Scene {
   placeSude() {
     const s = SCENE_07.sude
     applySudeNearestFilter(this, SUDE_COLOR)
+    const scale = scaleForVisibleHeight(
+      s.visibleAlphaHeight,
+      SCENE7_VISIBLE_HEIGHT,
+    )
+    this.logCharacterTexture('sude', s.textureKey, s.texturePath, s.visibleAlphaHeight, scale)
     this.sude = new Sude(this, s.x, s.y, {
       spritePack: SUDE_COLOR,
       speed: SCENE_07.sudeMove.speed,
@@ -111,11 +117,31 @@ export class ReunionScene extends Phaser.Scene {
       perspective: {
         yNear: s.y,
         yFar: s.y,
-        scaleNear: s.scale,
-        scaleFar: s.scale,
+        scaleNear: scale,
+        scaleFar: scale,
       },
     })
     this.sude.setLocked(true)
+  }
+
+  /**
+   * @param {string} id
+   * @param {string} textureKey
+   * @param {string} texturePath
+   * @param {number} visibleAlphaHeight
+   * @param {number} scale
+   */
+  logCharacterTexture(id, textureKey, texturePath, visibleAlphaHeight, scale) {
+    const tex = this.textures.exists(textureKey)
+      ? this.textures.get(textureKey)
+      : null
+    const src = tex?.getSourceImage?.()
+    const url =
+      (src && 'src' in src && typeof src.src === 'string' && src.src) ||
+      texturePath
+    console.info(
+      `[Scene7] ${id} png=${texturePath} key=${textureKey} url=${url} alphaBBoxH=${visibleAlphaHeight} scale=${scale.toFixed(5)} visibleH=${SCENE7_VISIBLE_HEIGHT}`,
+    )
   }
 
   placeLineup() {
@@ -124,9 +150,20 @@ export class ReunionScene extends Phaser.Scene {
       if (this.textures.exists(ch.textureKey)) {
         this.textures.get(ch.textureKey).setFilter(Phaser.Textures.FilterMode.NEAREST)
       }
+      const scale = scaleForVisibleHeight(
+        ch.visibleAlphaHeight,
+        SCENE7_VISIBLE_HEIGHT,
+      )
+      this.logCharacterTexture(
+        ch.id,
+        ch.textureKey,
+        ch.texturePath,
+        ch.visibleAlphaHeight,
+        scale,
+      )
       const spr = this.add.image(ch.x, ch.y, ch.textureKey)
       spr.setOrigin(0.5, ch.originY)
-      spr.setScale(ch.scale)
+      spr.setScale(scale)
       spr.setDepth(20 + ch.y + i * 0.01)
     })
   }
